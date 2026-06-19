@@ -1,10 +1,224 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-  <title>Мой сайт</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autom — Управление проектами</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
 <body>
-  <h1>Привет, мир!</h1>
-  <p>Мой первый сайт</p>
+
+<!-- ===== SETUP MODAL ===== -->
+<div id="setup-modal" class="modal-overlay hidden">
+  <div class="modal setup-modal">
+    <div class="modal-header">
+      <div class="logo"><span class="logo-icon">◆</span> Autom</div>
+    </div>
+    <div class="modal-body">
+      <h2 style="margin-bottom:8px">Добро пожаловать</h2>
+      <p class="setup-desc">Данные хранятся прямо в твоём GitHub репозитории. Для этого нужен Personal Access Token (PAT).<br><br>
+        Создать токен: <strong>github.com → Settings → Developer settings → Personal access tokens → Tokens (classic)</strong><br>
+        Поставь галочку на <strong>repo</strong>.
+      </p>
+      <div class="form-group">
+        <label>GitHub Token</label>
+        <input type="password" id="github-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+      </div>
+      <div class="form-group">
+        <label>Репозиторий (owner/repo)</label>
+        <input type="text" id="github-repo" value="ruslanliskani-afk/autom">
+      </div>
+      <div class="form-group">
+        <label>Ветка для данных</label>
+        <input type="text" id="github-branch" value="main">
+      </div>
+      <div class="setup-local">
+        <button class="btn btn-secondary btn-block" onclick="App.useLocal()">Использовать локально (без GitHub)</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-full" onclick="App.saveSetup()">Сохранить и начать</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div id="app" class="app hidden">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo"><span class="logo-icon">◆</span><span class="logo-text">Autom</span></div>
+      <button class="btn-icon" onclick="App.showNewProject()" title="Новый проект">+</button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-title">Обзор</div>
+        <div class="nav-item" onclick="App.showView('today')" data-view="today">
+          <span class="nav-icon">📅</span> Сегодня
+        </div>
+        <div class="nav-item" onclick="App.showView('all-tasks')" data-view="all-tasks">
+          <span class="nav-icon">📋</span> Все задачи
+        </div>
+        <div class="nav-item" onclick="App.showView('analytics')" data-view="analytics">
+          <span class="nav-icon">📊</span> Аналитика
+        </div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-title">Проекты</div>
+        <div id="projects-list"></div>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="nav-item" onclick="App.showSettings()">
+        <span class="nav-icon">⚙️</span> Настройки
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main-content">
+    <div id="view-kanban"    class="view"></div>
+    <div id="view-analytics" class="view hidden"></div>
+    <div id="view-all-tasks" class="view hidden"></div>
+    <div id="view-today"     class="view hidden"></div>
+  </main>
+</div>
+
+<!-- ===== TASK MODAL ===== -->
+<div id="task-modal" class="modal-overlay hidden">
+  <div class="modal task-modal">
+    <div class="modal-header task-modal-header">
+      <input type="text" id="task-title-input" class="task-title-input" placeholder="Название задачи">
+      <button class="btn-icon close-btn" onclick="App.closeTaskModal()">✕</button>
+    </div>
+    <div class="modal-body task-modal-body">
+      <div class="task-main">
+        <div class="form-group">
+          <label>Описание</label>
+          <textarea id="task-description" rows="3" placeholder="Добавь описание..."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Статус</label>
+            <select id="task-status">
+              <option value="todo">К выполнению</option>
+              <option value="inprogress">В процессе</option>
+              <option value="done">Готово</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Приоритет</label>
+            <select id="task-priority">
+              <option value="low">Низкий</option>
+              <option value="medium">Средний</option>
+              <option value="high">Высокий</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Дедлайн</label>
+          <input type="datetime-local" id="task-deadline">
+        </div>
+        <div class="form-group">
+          <label>Зависимости <span style="color:var(--text3);font-weight:400">(эти задачи должны быть завершены до)</span></label>
+          <div id="task-dependencies-list"></div>
+          <select id="task-dep-select" onchange="App.addDependency(this.value)" style="margin-top:6px">
+            <option value="">+ Добавить зависимость</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="task-sidebar-panel">
+        <div class="task-info-card">
+          <div class="task-timer">
+            <div class="timer-display" id="task-timer-display">00:00:00</div>
+            <div class="timer-controls">
+              <button class="btn btn-sm btn-primary btn-full" id="timer-btn" onclick="App.toggleTimer()">▶ Старт</button>
+            </div>
+            <div class="time-tracked" id="time-tracked-display">Записано: 0ч 0м</div>
+          </div>
+        </div>
+
+        <div class="task-info-card">
+          <div class="task-meta">
+            <div class="meta-item">
+              <span class="meta-label">Проект</span>
+              <span id="task-project-name" class="meta-value"></span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Создана</span>
+              <span id="task-created" class="meta-value"></span>
+            </div>
+            <div class="meta-item" id="task-completed-row" style="display:none">
+              <span class="meta-label">Завершена</span>
+              <span id="task-completed" class="meta-value"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" onclick="App.deleteTask()">Удалить</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-secondary" onclick="App.closeTaskModal()">Отмена</button>
+      <button class="btn btn-primary" onclick="App.saveTask()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PROJECT MODAL ===== -->
+<div id="project-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Новый проект</h2>
+      <button class="btn-icon close-btn" onclick="App.closeProjectModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Название</label>
+        <input type="text" id="project-name" placeholder="Название проекта">
+      </div>
+      <div class="form-group">
+        <label>Описание</label>
+        <textarea id="project-description" rows="2" placeholder="Описание (необязательно)"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Цвет</label>
+        <div class="color-picker">
+          <div class="color-option selected" data-color="#6366f1" style="background:#6366f1" onclick="App.selectColor(this)"></div>
+          <div class="color-option" data-color="#8b5cf6" style="background:#8b5cf6" onclick="App.selectColor(this)"></div>
+          <div class="color-option" data-color="#ec4899" style="background:#ec4899" onclick="App.selectColor(this)"></div>
+          <div class="color-option" data-color="#ef4444" style="background:#ef4444" onclick="App.selectColor(this)"></div>
+          <div class="color-option" data-color="#f97316" style="background:#f97316" onclick="App.selectColor(this)"></div>
+          <div class="color-option" data-color="#eab308" style="background:#eab308" onclick="App.selectColor(this)"></div>
+          <div class="color-option" data-color="#22c55e" style="background:#22c55e" onclick="App.selectColor(this)"></div>
+          <div class="color-option" data-color="#06b6d4" style="background:#06b6d4" onclick="App.selectColor(this)"></div>
+          <div class="color-option" data-color="#3b82f6" style="background:#3b82f6" onclick="App.selectColor(this)"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeProjectModal()">Отмена</button>
+      <button class="btn btn-primary" onclick="App.createProject()">Создать</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div id="toast-container"></div>
+
+<!-- ===== SYNC INDICATOR ===== -->
+<div id="sync-indicator" class="sync-indicator hidden">
+  <span class="sync-icon">↑</span> Сохранение...
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
