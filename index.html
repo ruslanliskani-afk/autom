@@ -47,6 +47,16 @@
 <!-- ===== MAIN APP ===== -->
 <div id="app" class="app hidden">
 
+  <!-- Mobile top bar -->
+  <header class="mobile-topbar">
+    <button class="btn-icon" id="menu-toggle" onclick="App.toggleSidebar()" title="Меню">☰</button>
+    <div class="logo"><span class="logo-icon">◆</span><span class="logo-text">Autom</span></div>
+    <button class="btn-icon" onclick="App.showNewProject()" title="Новый проект">+</button>
+  </header>
+
+  <!-- Sidebar backdrop (mobile) -->
+  <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="App.toggleSidebar()"></div>
+
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-header">

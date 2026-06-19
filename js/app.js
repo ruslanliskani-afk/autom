@@ -161,9 +161,20 @@ const App = (() => {
     showView('kanban');
   }
 
+  // ─── Mobile sidebar ───────────────────────────────────────────────
+  function toggleSidebar() {
+    const app = document.getElementById('app');
+    app.classList.toggle('sidebar-open');
+  }
+
+  function closeSidebar() {
+    document.getElementById('app').classList.remove('sidebar-open');
+  }
+
   // ─── Views ────────────────────────────────────────────────────────
   function showView(view) {
     currentView = view;
+    closeSidebar();
     document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
     document.querySelectorAll('.nav-item[data-view]').forEach(n => n.classList.remove('active'));
     const el = document.getElementById(`view-${view}`);
@@ -829,6 +840,7 @@ const App = (() => {
     addDependency, removeDependency,
     toggleTimer,
     filterTasks,
+    toggleSidebar,
   };
 })();
 

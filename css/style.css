@@ -660,11 +660,124 @@ select option { background: var(--bg3); color: var(--text); }
 .sync-icon { animation: spin 1s linear infinite; display: inline-block; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
+/* ============ MOBILE TOP BAR ============ */
+.mobile-topbar {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 60;
+}
+.mobile-topbar .logo { font-size: 15px; }
+.mobile-topbar .btn-icon { width: 36px; height: 36px; font-size: 19px; }
+
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 70;
+}
+
 /* ============ RESPONSIVE ============ */
-@media (max-width: 768px) {
-  :root { --sidebar-w: 200px; }
-  .task-modal { max-width: 100%; }
-  .task-modal-body { flex-direction: column; }
-  .task-sidebar-panel { width: 100%; }
+@media (max-width: 860px) {
   .charts-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  /* App becomes vertical: top bar + content */
+  .app { flex-direction: column; }
+
+  .mobile-topbar { display: flex; }
+
+  /* Sidebar turns into a slide-in drawer */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 80%;
+    max-width: 300px;
+    z-index: 80;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+  .app.sidebar-open .sidebar { transform: translateX(0); }
+  .app.sidebar-open .sidebar-backdrop { display: block; }
+
+  .main-content { height: auto; flex: 1; min-height: 0; }
+
+  /* Bigger touch targets */
+  .nav-item { padding: 12px 16px; font-size: 15px; }
+  .btn { padding: 10px 16px; font-size: 14px; }
+  .btn-icon { width: 36px; height: 36px; }
+
+  /* Board header stacks */
+  .board-header { padding: 14px 16px; flex-wrap: wrap; }
+  .board-header h1 { font-size: 18px; }
+
+  /* Kanban: one column at a time, swipe horizontally */
+  .kanban-board {
+    padding: 12px;
+    gap: 12px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .kanban-column {
+    width: 86vw;
+    min-width: 86vw;
+    max-height: none;
+    scroll-snap-align: center;
+  }
+  .column-tasks { max-height: 60vh; }
+  .task-card { padding: 14px; }
+  .task-title-text { font-size: 15px; }
+
+  /* Today view spacing */
+  .today-section { padding: 14px 16px 4px; }
+  .today-task { padding: 14px; }
+  .today-task-title { font-size: 15px; }
+
+  /* Tables scroll sideways instead of squashing */
+  .view-scroll { padding: 12px; }
+  .tasks-table { min-width: 560px; }
+  .search-input { width: 100%; }
+  .board-actions { width: 100%; }
+  .board-actions .btn { flex: 1; }
+
+  /* Stats: two per row */
+  .stats-grid { grid-template-columns: 1fr 1fr; padding: 12px; gap: 8px; }
+  .stat-value { font-size: 22px; }
+
+  /* Modals fill the screen comfortably */
+  .modal-overlay { padding: 0; align-items: flex-end; }
+  .modal {
+    max-width: 100%;
+    width: 100%;
+    max-height: 94vh;
+    border-radius: 16px 16px 0 0;
+  }
+  @keyframes modal-in {
+    from { transform: translateY(40px); opacity: 0.6; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  /* Task modal: single column */
+  .task-modal { max-width: 100%; }
+  .task-modal-body { flex-direction: column; gap: 14px; }
+  .task-sidebar-panel { width: 100%; }
+  .form-row { flex-direction: column; gap: 0; }
+
+  /* Sync indicator above mobile content */
+  .sync-indicator { left: 50%; transform: translateX(-50%); bottom: 16px; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+}
+
+/* Hide the in-sidebar header "+" on desktop only when topbar is hidden — keep as is */
+@media (min-width: 769px) {
+  .mobile-topbar, .sidebar-backdrop { display: none !important; }
 }
